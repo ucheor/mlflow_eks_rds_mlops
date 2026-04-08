@@ -13,6 +13,9 @@ By the end of this guide you will have:
 •	A working knowledge of the AWS infrastructure involved  
 •	Clean teardown steps to avoid surprise AWS bills  
 
+
+Here is the Repo on GitHub: https://github.com/ucheor/mlflow_eks_rds_mlops_QR.git
+
 ---
 
 ## Architecture Overview  
@@ -36,7 +39,8 @@ Log into the AWS Management Console and navigate to Aurora and RDS from the top 
 
 
 **Step 2: Choose PostgreSQL as the Engine**  
-On the Create Database page, select PostgreSQL as the engine type. MLflow supports several database backends (SQLite, MySQL, PostgreSQL, MSSQL), but PostgreSQL is the recommended choice for production deployments due to its reliability, rich feature set, and excellent AWS RDS support.
+On the Create Database page, select PostgreSQL as the engine type. MLflow supports several database backends (SQLite, MySQL, PostgreSQL, MSSQL), but PostgreSQL is the recommended choice for production deployments due to its reliability, rich feature set, and excellent AWS RDS support. 
+
 We will use the **Easy Create** method in this demonstrtaion. Make sure you select PostgreSQL specifically and not Aurora (PostgreSQL Compatible), which is a different, more expensive service.
  
 ![Selecting PostgreSQL engine with Easy Create method](images/02_create_postgreSQL_database.png)  
@@ -170,6 +174,10 @@ psql -h <your-rds-endpoint> -p 5432 -U postgres
 
 Enter the master password you set during RDS creation. Once connected, run \l to list all databases. You will see the default system databases (postgres, rdsadmin, template0, template1). This confirms connectivity is working correctly between EC2 and RDS.
 
+```
+\l
+```
+
 Note: If the connection times out, double-check that the inbound rule from Step 9 was saved correctly with port 5432 pointing to the EC2 security group.
  
 ![Connected to RDS via psql from EC2 - listing default databases confirms connectivity is working](images/12_view_databases.png)  
@@ -261,7 +269,7 @@ This step takes 15-20 minutes. You will see detailed logs showing VPC selection,
 
 ---
 
-**Step 15: Create Kubernetes Namespace and Add Helm Repository**
+**Step 15: Create Kubernetes Namespace and Add Helm Repository**  
 Once the cluster is up, prepare the Helm deployment environment:
 
 ```
@@ -320,7 +328,7 @@ Note: If the pod shows CrashLoopBackOff, check logs with: kubectl logs <pod-name
 
 ## Part 5: Accessing the MLflow UI
 
-**Step 18: Port-Forward to Access the MLflow Dashboard**
+**Step 18: Port-Forward to Access the MLflow Dashboard**  
 Since the MLflow service is of type ClusterIP (no external IP), use kubectl port-forward to tunnel it to your local machine:
 
 ```
