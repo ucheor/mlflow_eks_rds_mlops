@@ -443,6 +443,7 @@ Navigate to EC2 and Security Groups, select the security group used by the demo 
  
 **Step 28: Delete the RDS Database**  
 Finally, delete the RDS PostgreSQL instance. Navigate to Aurora and RDS and Databases, select your database, and choose Actions and then Delete. The confirmation dialog presents several options:  
+
 •	Create final snapshot - uncheck for a demo teardown (check this for production to preserve data)  
 •	Retain automated backups - uncheck for full cleanup  
 •	Acknowledgement checkbox - check this to confirm you understand backups will be lost  
