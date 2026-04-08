@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/eksctl-io/eksctl/main/pkg/apis/eksctl.io/v1alpha5/schema.json
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: mlflow-cluster
+  region: us-east-1
+
+vpc:
+  id: "vpc-0c63741155fd87277" #use the same VPC as your database 
+  subnets:
+    public:
+      # Using at least 2 AZs is a requirement for EKS - use subnets IDs from your VPC
+      us-east-1a: { id: "subnet-06dbe238d190ddc56" }
+      us-east-1b: { id: "subnet-02971f15ceb28c9cd" }
+      us-east-1c: { id: "subnet-06c46e7f0c0befa46" }
+
+managedNodeGroups:
+  - name: mlflow-nodes
+    instanceType: t3.large
+    desiredCapacity: 2
+    securityGroups:
+      attachIDs: ["sg-05cf7a33fdb7e139b"] # update to the VPC ID of your database
