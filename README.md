@@ -1,8 +1,10 @@
 # Deploying MLflow on Amazon EKS with RDS PostgreSQL
 ## A Backend Store for Production-Ready ML Experiment Tracking  
 
-If you have ever worked on a machine learning project beyond the prototype stage, you will know how quickly experiment tracking becomes painful. Which model version performed best? What hyperparameters did you use two weeks ago? Did the latest training run improve accuracy?
-MLflow solves this by providing a central platform to log parameters, metrics, models, and artifacts. But running it locally does not cut it for teams. You need a setup that is persistent, scalable, and accessible to everyone.
+If you have ever worked on a machine learning project beyond the prototype stage, you will know how quickly experiment tracking becomes painful. Which model version performed best? What hyperparameters did you use two weeks ago? Did the latest training run improve accuracy?  
+
+MLflow solves this by providing a central platform to log parameters, metrics, models, and artifacts. But running it locally does not cut it for teams. You need a setup that is persistent, scalable, and accessible to everyone.  
+
 In this tutorial, we walk through deploying MLflow on Amazon EKS (Elastic Kubernetes Service) backed by an Amazon RDS PostgreSQL database. We use an EC2 instance as a gateway to configure the database, and Helm to deploy MLflow cleanly into a Kubernetes namespace.
 
 By the end of this guide you will have:  
@@ -44,10 +46,10 @@ We will use the **Easy Create** method in this demonstrtaion. Make sure you sele
 
 **Step 3: Configure the Database Instance**  
 Now, let's configure the database instance. The key settings to pay attention to are:  
-•	DB instance size: Select Free tier (db.t4g.micro) for this demo. For production, choose db.t3.medium or larger depending on team size.
-•	DB instance identifier: Using a descriptive name like mlflow-eks-rds-mlops-demo-ucheor makes it easy to identify.
-•	Master username: Set to postgres (the default admin user). 
-•	Credentials management: Select Self managed and enter a strong master password. Store this securely - we will need it shortly.
+•	DB instance size: Select Free tier (db.t4g.micro) for this demo. For production, choose db.t3.medium or larger depending on team size.  
+•	DB instance identifier: Using a descriptive name like mlflow-eks-rds-mlops-demo-ucheor makes it easy to identify.  
+•	Master username: Set to postgres (the default admin user).   
+•	Credentials management: Select Self managed and enter a strong master password. Store this securely - we will need it shortly.  
 
 Note: Never use "Auto generate password" for a password you will not be shown again without extra steps. Choose Self managed and record it securely.
  
@@ -57,7 +59,8 @@ Note: Never use "Auto generate password" for a password you will not be shown ag
 
 
 **Step 4: Confirm the Database Was Created**  
-After clicking Create database, AWS will begin provisioning your RDS instance. This takes 3-5 minutes. You will see the status show as "Backing-up" initially, which means the database has been created and AWS is taking an initial snapshot.
+After clicking Create database, AWS will begin provisioning your RDS instance. This takes 3-5 minutes. You will see the status show as "Backing-up" initially, which means the database has been created and AWS is taking an initial snapshot.  
+
 Once the status becomes Available, your RDS PostgreSQL instance is ready. Note the DB identifier - we will use its endpoint in later steps to connect.
  
 ![RDS Databases list showing the newly created PostgreSQL instance with Backing-up status](images/04_postgreSQL_database_created.png)  
@@ -65,9 +68,11 @@ Once the status becomes Available, your RDS PostgreSQL instance is ready. Note t
 ---
 
 **Step 5: Copy the Database Endpoint**  
-Click on your database identifier to open its details page. Navigate to the Connectivity and security tab. Under the Endpoint and port section, copy the full endpoint URL. It will look like: mlflow-eks-rds-mlops-demo-ucheor.xxxxxxxx.us-east-1.rds.amazonaws.com
-Also note: the port is 5432 (standard PostgreSQL) and the VPC security group attached is the default group. We will need to modify this security group's inbound rules later to allow our EC2 instance to reach port 5432. 
-Note: In your setup, you can go with your preferred VPC and security group as long as you remember to create the EC2 jump server in the same VPC to follow along with this demo without extra configurations.
+Click on your database identifier to open its details page. Navigate to the Connectivity and security tab. Under the Endpoint and port section, copy the full endpoint URL. It will look like: mlflow-eks-rds-mlops-demo-ucheor.xxxxxxxx.us-east-1.rds.amazonaws.com  
+
+**Note:** The port is 5432 (standard PostgreSQL) and the VPC security group attached is the default group. We will need to modify this security group's inbound rules later to allow our EC2 instance to reach port 5432. 
+
+In your setup, you can go with your preferred VPC and security group as long as you remember to create the EC2 jump server in the same VPC to follow along with this demo without extra configurations.  
  
 ![RDS Connectivity and Security tab - copying the database endpoint, noting port 5432 and attached security group](images/05_copy_database_endpoint.png)  
 
@@ -76,7 +81,8 @@ Note: In your setup, you can go with your preferred VPC and security group as lo
 ## Part 2: EC2 Instance and Security Group Configuration  
 
 **Step 6: Confirm Your EC2 Instance Is Running**  
-We need an EC2 instance that lives in the same VPC as our RDS database. Create an instance in your AWS account. This acts as a bastion or jump host to connect to the RDS instance from within the private network.
+We need an EC2 instance that lives in the same VPC as our RDS database. Create an instance in your AWS account. This acts as a bastion or jump host to connect to the RDS instance from within the private network.  
+
 Navigate to EC2 and Instances and confirm your demo instance is in a Running state. In this walkthrough we use a t3.medium Ubuntu instance named demo-instance-ucheor. Note the security group attached to it - we will reference this when configuring the RDS inbound rules.
  
 ![EC2 Instances list - demo instance running with its security group details visible](images/06_ec2_instance_created.png)
@@ -84,7 +90,9 @@ Navigate to EC2 and Instances and confirm your demo instance is in a Running sta
 ---
 
 **Step 7: Find the RDS Security Group and Open Inbound Rules**  
-For our EC2 instance to connect to RDS on port 5432, we need to add an inbound rule to the RDS security group. Navigate to your RDS Connectivity & Security Tab and find the default security group attached to your RDS instance. You will need to edit this security group to give access to the EC2 jump server and click Edit inbound rules.
+For our EC2 instance to connect to RDS on port 5432, we need to add an inbound rule to the RDS security group. Navigate to your RDS Connectivity & Security Tab and find the default security group attached to your RDS instance. 
+
+You will need to edit this security group to give access to the EC2 jump server and click Edit inbound rules.
 Note: The default VPC security group is shared across resources. In production, use a dedicated security group for RDS rather than the default.
  
 ![EC2 Security Groups - selecting the RDS default security group to edit inbound rules](images/07_adjust_security_group_inbound_rule.png)  
@@ -100,7 +108,8 @@ We need to add a new rule to allow TCP traffic on port 5432 (PostgreSQL) from th
 
 **Step 9: Add the PostgreSQL Inbound Rule**  
 Click Add rule and configure: Type = Custom TCP, Port range = 5432, Source = Custom, then search for and select the security group attached to your EC2 jump server. This tells the RDS security group to allow inbound PostgreSQL connections only from resources attached to that specific EC2 security group.
-Click Save rules when done.  
+Click Save rules when done.    
+
 Note: Scoping the source to a security group rather than an IP range is a best practice - it survives EC2 IP changes and is easier to manage at scale.
  
 ![Adding a new Custom TCP inbound rule for port 5432 scoped to the EC2 security group](images/09_edit_inbound_rules_2.png) 
@@ -244,8 +253,9 @@ Let's now go ahead and create our EKS cluster
 eksctl create cluster -f cluster.yaml
 ```
 
-This step takes 15-20 minutes. You will see detailed logs showing VPC selection, subnet configuration, node group creation, and Kubernetes add-ons being installed (vpc-cni, kube-proxy, coredns, metrics-server).
-Note: eksctl automatically configures your local kubeconfig so subsequent kubectl commands will target the new cluster.
+This step takes 15-20 minutes. You will see detailed logs showing VPC selection, subnet configuration, node group creation, and Kubernetes add-ons being installed (vpc-cni, kube-proxy, coredns, metrics-server).  
+
+**Note:** eksctl automatically configures your local kubeconfig so subsequent kubectl commands will target the new cluster.
  
 ![eksctl create cluster output showing EKS cluster and node group being provisioned via CloudFormation](images/14_initiate_cluster_creation.png) 
 
@@ -300,7 +310,8 @@ kubectl get pods -n mlflow   # should show 1/1 Running
 kubectl get all -n mlflow   #shows pod, service, deployment, and replicaset
 ```
 
-You should see the MLflow pod with STATUS: Running and RESTARTS: 0. The service shows as ClusterIP on port 80. This confirms MLflow started successfully and connected to RDS to run database migrations.
+You should see the MLflow pod with STATUS: Running and RESTARTS: 0. The service shows as ClusterIP on port 80. This confirms MLflow started successfully and connected to RDS to run database migrations.  
+
 Note: If the pod shows CrashLoopBackOff, check logs with: kubectl logs <pod-name> -n mlflow. The most common cause is incorrect RDS credentials or an unreachable endpoint. 
  
 ![kubectl output showing MLflow pod Running with 0 restarts, service, deployment, and replicaset all healthy](images/17_use_this_mlflow_pods_running.png)  
@@ -327,15 +338,17 @@ Note: For production, expose MLflow via a LoadBalancer service or Ingress with T
 **Step 19: MLflow Dashboard Is Live**  
 Navigate to http://localhost:5000 and you should see the MLflow welcome screen. This confirms the full stack is working end-to-end: your browser connects through the kubectl tunnel to the EKS pod, which reads and writes to RDS PostgreSQL.
 
-The dashboard shows four main capabilities: Log traces (LLM debugging), Run evaluation (offline model comparisons), Train models (experiment tracking), and Register prompts (team prompt management).
-Notice the "Default" experiment was created automatically - this was created the moment the MLflow server first connected to RDS and initialized the backend database. Data persistence is working.
+The dashboard shows four main capabilities: Log traces (LLM debugging), Run evaluation (offline model comparisons), Train models (experiment tracking), and Register prompts (team prompt management).  
+
+Notice that the "Default" experiment was created automatically - this was created the moment the MLflow server first connected to RDS and initialized the backend database. Data persistence is working.
  
 ![MLflow 3.7.0 welcome dashboard live at localhost:5000 - full stack confirmed working](images/19_use_this_mlflow_dashboard.png)  
 
 ---
 
 **Step 20: Confirm the Experiments Tab**  
-Click Experiments in the left sidebar. You will see the Default experiment listed, created when MLflow first initialized. This experiment list is stored in your RDS PostgreSQL database - not in the pod's local storage - so it will survive pod restarts and redeployments.
+Click Experiments in the left sidebar. You will see the Default experiment listed, created when MLflow first initialized. This experiment list is stored in your RDS PostgreSQL database - not in the pod's local storage - so it will survive pod restarts and redeployments.  
+
 This is the key benefit of using RDS as a backend store: your experiment history is durable. If the pod crashes, restarts, or is replaced during a rolling update, all your logged runs remain intact in the database.
  
 ![MLflow Experiments tab showing Default experiment persisted in RDS PostgreSQL](images/20_use_this_mlflow_experiments_tab.png)  
@@ -399,7 +412,8 @@ This is operation takes 10-15 minutes. The eksctl output shows it draining node 
 ---
 
 **Step 25: Wait for All EKS Resources to Be Deleted**  
-Monitor the deletion progress. The eksctl output shows it waiting for CloudFormation stacks to be removed - first the node group stack, then the cluster stack itself. When you see "all cluster resources were deleted", the EKS teardown is complete.
+Monitor the deletion progress. The eksctl output shows it waiting for CloudFormation stacks to be removed - first the node group stack, then the cluster stack itself. When you see "all cluster resources were deleted", the EKS teardown is complete.  
+
 This step takes patience - CloudFormation stack deletion is thorough and checks dependencies at each stage. Do not interrupt the process.
  
 ![eksctl output confirming "all cluster resources were deleted" - EKS teardown complete](images/24_eks_cluster_resources_deleted.png)  
@@ -408,29 +422,33 @@ This step takes patience - CloudFormation stack deletion is thorough and checks 
 
 
 **Step 26: Terminate the EC2 Instance**  
-Navigate to EC2 and Instances, select jump server instance, and choose Instance state and then Terminate instance. A confirmation dialog warns that the EBS root volume will be deleted - since this was a temporary jump host, that is what we want.
-Click Terminate (delete) to confirm. The instance will move to Terminated state and disappear from your instances list after a short time.
-**Note: Terminating an EC2 instance is permanent and cannot be undone. Make sure you have saved any data you need from it first.
+Navigate to EC2 and Instances, select jump server instance, and choose Instance state and then Terminate instance. A confirmation dialog warns that the EBS root volume will be deleted - since this was a temporary jump host, that is what we want.  
+
+Click Terminate (delete) to confirm. The instance will move to Terminated state and disappear from your instances list after a short time.  
+
+**Note:** Terminating an EC2 instance is permanent and cannot be undone. Make sure you have saved any data you need from it first.
 
 ![EC2 Terminate instance dialog - confirming permanent deletion of the demo jump host](images/26_terminate_ec2_instance.png)  
 
 ---
 
 **Step 27: Delete the EC2 Security Group**  
-Navigate to EC2 and Security Groups, select the security group used by the demo instance, and delete it.
-Important: you must terminate the EC2 instance before you can delete its associated security group. If deletion fails with a dependency error, remember to complete Step 26 first, then return here. You might also need to dissociate the security group from the RDS security group before you can delete the security group.
+Navigate to EC2 and Security Groups, select the security group used by the demo instance, and delete it.  
+
+**Important:** you must terminate the EC2 instance before you can delete its associated security group. If deletion fails with a dependency error, remember to complete Step 26 first, then return here. You might also need to dissociate the security group from the RDS security group before you can delete the security group.
  
 ![Security group successfully deleted - green confirmation banner](images/27_delete_sg_unattach_from_default.png)  
 
 ---
  
 **Step 28: Delete the RDS Database**  
-Finally, delete the RDS PostgreSQL instance. Navigate to Aurora and RDS and Databases, select your database, and choose Actions and then Delete. The confirmation dialog presents several options:
-•	Create final snapshot - uncheck for a demo teardown (check this for production to preserve data)
-•	Retain automated backups - uncheck for full cleanup
-•	Acknowledgement checkbox - check this to confirm you understand backups will be lost
+Finally, delete the RDS PostgreSQL instance. Navigate to Aurora and RDS and Databases, select your database, and choose Actions and then Delete. The confirmation dialog presents several options:  
+•	Create final snapshot - uncheck for a demo teardown (check this for production to preserve data)  
+•	Retain automated backups - uncheck for full cleanup  
+•	Acknowledgement checkbox - check this to confirm you understand backups will be lost  
 
-Type "delete me" in the confirmation field and click Delete. This permanently removes the RDS instance and all its data.
+Type "delete me" in the confirmation field and click Delete. This permanently removes the RDS instance and all its data.  
+
 Note: For production, always create a final snapshot before deleting an RDS instance. Deletion is irreversible.
  
 ![RDS Delete instance dialog - typing "delete me" to confirm permanent deletion of the MLflow backend database](images/28_delete_database.png)  
@@ -449,7 +467,7 @@ Congratulations - you have successfully deployed a production-grade MLflow track
 •	Namespace isolation - keeps MLflow resources self-contained and easy to manage or remove  
 •	kubectl port-forward - simple, secure local UI access without exposing the service externally  
 
-**What's Next?**
+**What's Next?**  
 This setup gives you a solid foundation. From here you can extend it by:  
 •	Adding an S3 artifact store so model files and plots are also stored persistently outside the pod  
 •	Exposing MLflow via an AWS Load Balancer and Route 53 for team-wide access without port-forwarding  
