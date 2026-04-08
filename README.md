@@ -6,10 +6,10 @@ MLflow solves this by providing a central platform to log parameters, metrics, m
 In this tutorial, we walk through deploying MLflow on Amazon EKS (Elastic Kubernetes Service) backed by an Amazon RDS PostgreSQL database. We use an EC2 instance as a gateway to configure the database, and Helm to deploy MLflow cleanly into a Kubernetes namespace.
 
 By the end of this guide you will have:  
-•	A production-grade MLflow tracking server running on EKS
-•	Persistent experiment storage in Amazon RDS PostgreSQL
-•	A working knowledge of the AWS infrastructure involved
-•	Clean teardown steps to avoid surprise AWS bills
+•	A production-grade MLflow tracking server running on EKS  
+•	Persistent experiment storage in Amazon RDS PostgreSQL  
+•	A working knowledge of the AWS infrastructure involved  
+•	Clean teardown steps to avoid surprise AWS bills  
 
 ---
 
@@ -64,7 +64,7 @@ Once the status becomes Available, your RDS PostgreSQL instance is ready. Note t
 
 ---
 
-**Step 5: Copy the Database Endpoint**
+**Step 5: Copy the Database Endpoint**  
 Click on your database identifier to open its details page. Navigate to the Connectivity and security tab. Under the Endpoint and port section, copy the full endpoint URL. It will look like: mlflow-eks-rds-mlops-demo-ucheor.xxxxxxxx.us-east-1.rds.amazonaws.com
 Also note: the port is 5432 (standard PostgreSQL) and the VPC security group attached is the default group. We will need to modify this security group's inbound rules later to allow our EC2 instance to reach port 5432. 
 Note: In your setup, you can go with your preferred VPC and security group as long as you remember to create the EC2 jump server in the same VPC to follow along with this demo without extra configurations.
@@ -131,12 +131,14 @@ sudo apt update
 sudo apt install -y postgresql-17
 
 ```
- 
+
+---
+
 ![PostgreSQL.org downloads page - select Linux/Ubuntu to get client installation instructions](images/10_download_psql_package.png)
 
 ---
 
-**Step 11: Verify the PostgreSQL Client Is Installed**
+**Step 11: Verify the PostgreSQL Client Is Installed**  
 After installation, confirm psql is working by running:
 
 ```
@@ -234,7 +236,7 @@ Managed node groups are recommended over self-managed nodes because AWS handles 
 - securityGroups: attachIDs (Critical - enables RDS connectivity)
 This is the second critical field. By attaching the RDS security group to the EKS worker nodes, we ensure that all MLflow pods running on those nodes are treated as members of that security group. Remember in Step 9 we added an inbound rule to the RDS security group allowing port 5432 from itself (the self-referencing All traffic rule). This means EKS nodes with this security group attached can reach RDS on port 5432 automatically.
 
-**Note: When adapting this for your own setup, you must replace the vpc.id, all three subnet IDs, and the securityGroups.attachIDs with values from your own AWS account. The cluster name and region can be anything you choose.
+**Note:** When adapting this for your own setup, you must replace the vpc.id, all three subnet IDs, and the securityGroups.attachIDs with values from your own AWS account. The cluster name and region can be anything you choose.
 
 Let's now go ahead and create our EKS cluster
 
@@ -280,7 +282,11 @@ helm install mlflow community-charts/mlflow \
   --set backendStore.postgres.password=<add-your-database-password>  # update to your password
 ```
 
-Key flags explained: databaseMigration=true tells MLflow to run Alembic migrations on startup, automatically creating all required tables in PostgreSQL. service.type=ClusterIP means the service is only accessible within the cluster. A successful deployment shows STATUS: deployed and REVISION: 1.
+**Key flags:** 
+- databaseMigration=true tells MLflow to run Alembic migrations on startup, automatically creating all required tables in PostgreSQL.   
+- service.type=ClusterIP means the service is only accessible within the cluster.   
+
+A successful deployment shows STATUS: deployed and REVISION: 1.
  
 ![Helm install command and successful deployment output - STATUS: deployed confirms MLflow is running](images/16_use_this_helm_install_mlflow.png)  
 
@@ -322,7 +328,7 @@ Note: For production, expose MLflow via a LoadBalancer service or Ingress with T
 Navigate to http://localhost:5000 and you should see the MLflow welcome screen. This confirms the full stack is working end-to-end: your browser connects through the kubectl tunnel to the EKS pod, which reads and writes to RDS PostgreSQL.
 
 The dashboard shows four main capabilities: Log traces (LLM debugging), Run evaluation (offline model comparisons), Train models (experiment tracking), and Register prompts (team prompt management).
-Notice the "Default" experiment was created automatically - this was created the moment the MLflow server first connected to RDS and initialized the backend database. Persistence is working.
+Notice the "Default" experiment was created automatically - this was created the moment the MLflow server first connected to RDS and initialized the backend database. Data persistence is working.
  
 ![MLflow 3.7.0 welcome dashboard live at localhost:5000 - full stack confirmed working](images/19_use_this_mlflow_dashboard.png)  
 
@@ -338,12 +344,12 @@ This is the key benefit of using RDS as a backend store: your experiment history
 
 ## Part 6: Testing Experiment Tracking from Python
 
-**Step 21: Install MLflow Locally and Set Up a Virtual Environment**
+**Step 21: Install MLflow Locally and Set Up a Virtual Environment**  
 To test logging experiments to our remote MLflow server, install the MLflow Python package locally. First create a virtual environment, then install mlflow:
 
 ```
 python -m venv .venv
-source .venv/Scripts/activate   (Windows) or source .venv/bin/activate (Linux/Mac)
+source .venv/Scripts/activate   # for Windows  or source .venv/bin/activate  for Linux/Mac
 python -m pip install mlflow
 ```
 
@@ -369,7 +375,7 @@ The returned Experiment object confirms: experiment_id=2, lifecycle_stage=active
 
 ---
 
-**Step 23: Verify the New Experiment Appears in the UI**
+**Step 23: Verify the New Experiment Appears in the UI**  
 Switch back to your browser at http://localhost:5000 and click Experiments. You should now see "mlflow-experiment" listed alongside Default, with a creation timestamp matching when you ran the Python command.
 This end-to-end confirmation proves the full loop is working: Python client sends data through the port-forward tunnel to the EKS pod, which writes it to RDS, and the UI reads it back from RDS.
 
@@ -380,7 +386,8 @@ This end-to-end confirmation proves the full loop is working: Python client send
 
 ## Part 7: Teardown and Cleanup
 
-When you are done with the demo, clean up all AWS resources to avoid incurring unexpected charges. Follow these steps in order - deleting resources in the wrong order can cause dependency errors.
+When you are done with the demo, clean up all AWS resources to avoid incurring unexpected charges. Follow these steps in order - deleting resources in the wrong order can cause dependency errors.  
+
 **Step 24: Start EKS Cluster Deletion**  
 Run the eksctl delete command to begin cluster deletion. This removes the EKS control plane and managed node group via CloudFormation:
 eksctl delete cluster -f cluster.yaml
@@ -391,7 +398,7 @@ This is operation takes 10-15 minutes. The eksctl output shows it draining node 
 
 ---
 
-**Step 25: Wait for All EKS Resources to Be Deleted**
+**Step 25: Wait for All EKS Resources to Be Deleted**  
 Monitor the deletion progress. The eksctl output shows it waiting for CloudFormation stacks to be removed - first the node group stack, then the cluster stack itself. When you see "all cluster resources were deleted", the EKS teardown is complete.
 This step takes patience - CloudFormation stack deletion is thorough and checks dependencies at each stage. Do not interrupt the process.
  
@@ -400,7 +407,7 @@ This step takes patience - CloudFormation stack deletion is thorough and checks 
 ---
 
 
-**Step 26: Terminate the EC2 Instance**
+**Step 26: Terminate the EC2 Instance**  
 Navigate to EC2 and Instances, select jump server instance, and choose Instance state and then Terminate instance. A confirmation dialog warns that the EBS root volume will be deleted - since this was a temporary jump host, that is what we want.
 Click Terminate (delete) to confirm. The instance will move to Terminated state and disappear from your instances list after a short time.
 **Note: Terminating an EC2 instance is permanent and cannot be undone. Make sure you have saved any data you need from it first.
@@ -417,7 +424,7 @@ Important: you must terminate the EC2 instance before you can delete its associa
 
 ---
  
-**Step 28: Delete the RDS Database**
+**Step 28: Delete the RDS Database**  
 Finally, delete the RDS PostgreSQL instance. Navigate to Aurora and RDS and Databases, select your database, and choose Actions and then Delete. The confirmation dialog presents several options:
 •	Create final snapshot - uncheck for a demo teardown (check this for production to preserve data)
 •	Retain automated backups - uncheck for full cleanup
@@ -434,21 +441,21 @@ Note: For production, always create a final snapshot before deleting an RDS inst
 
 Congratulations - you have successfully deployed a production-grade MLflow tracking server on Amazon EKS, backed by a persistent RDS PostgreSQL database, and verified it end-to-end with Python experiment tracking.
 
-**Here is a summary of what we built and why each piece matters:
-•	RDS PostgreSQL - durable, managed backend store that survives pod restarts and cluster updates
-•	EC2 jump host - secure, VPC-internal way to bootstrap the database without exposing RDS publicly
-•	Security group scoping - least-privilege access control between EC2 and RDS on port 5432
-•	EKS + Helm - scalable, Kubernetes-native deployment with clean configuration management
-•	Namespace isolation - keeps MLflow resources self-contained and easy to manage or remove
-•	kubectl port-forward - simple, secure local UI access without exposing the service externally
+**Here is a summary of what we built and why each piece matters:**  
+•	RDS PostgreSQL - durable, managed backend store that survives pod restarts and cluster updates  
+•	EC2 jump host - secure, VPC-internal way to bootstrap the database without exposing RDS publicly  
+•	Security group scoping - least-privilege access control between EC2 and RDS on port 5432  
+•	EKS + Helm - scalable, Kubernetes-native deployment with clean configuration management  
+•	Namespace isolation - keeps MLflow resources self-contained and easy to manage or remove  
+•	kubectl port-forward - simple, secure local UI access without exposing the service externally  
 
-What's Next?
-This setup gives you a solid foundation. From here you can extend it by:
-•	Adding an S3 artifact store so model files and plots are also stored persistently outside the pod
-•	Exposing MLflow via an AWS Load Balancer and Route 53 for team-wide access without port-forwarding
-•	Adding TLS/HTTPS with cert-manager and a Kubernetes Ingress resource
-•	Configuring MLflow authentication (Basic Auth or OAuth) for multi-user environments
-•	Integrating MLflow tracking calls into your CI/CD pipeline for automated experiment logging
+**What's Next?**
+This setup gives you a solid foundation. From here you can extend it by:  
+•	Adding an S3 artifact store so model files and plots are also stored persistently outside the pod  
+•	Exposing MLflow via an AWS Load Balancer and Route 53 for team-wide access without port-forwarding  
+•	Adding TLS/HTTPS with cert-manager and a Kubernetes Ingress resource  
+•	Configuring MLflow authentication (Basic Auth or OAuth) for multi-user environments  
+•	Integrating MLflow tracking calls into your CI/CD pipeline for automated experiment logging  
 
 If this guide was helpful, feel free to connect and share. Happy tracking!
 
