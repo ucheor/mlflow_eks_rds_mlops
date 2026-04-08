@@ -1,7 +1,7 @@
 # Deploying MLflow on Amazon EKS with RDS PostgreSQL
 ## A Backend Store for Production-Ready ML Experiment Tracking  
 
-If you have ever worked on a machine learning project beyond the prototype stage, you will know how quickly experiment tracking becomes painful. Which model version performed best? What hyperparameters did you use two weeks ago? Did the latest training run improve accuracy?  
+Transitioning a machine learning project from a local prototype to a production-ready environment often reveals a major bottleneck arising from management of experiment data. Without a structured system, tracking which specific hyperparameters produced a winning model version or comparing the accuracy of disparate training runs becomes a manual, error-prone task that hinders team collaboration. What hyperparameters did you use two weeks ago? Did the latest training run improve accuracy?  
 
 MLflow solves this by providing a central platform to log parameters, metrics, models, and artifacts. But running it locally does not cut it for teams. You need a setup that is persistent, scalable, and accessible to everyone.  
 
